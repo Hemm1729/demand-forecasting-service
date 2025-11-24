@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: demand-forecasting-db
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: demand_forecasting
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - demand-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: demand-forecasting-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - demand-network
+
+  api:
+    build: .
+    container_name: demand-forecasting-api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: mysql+mysqlconnector://root:password@db:3306/demand_forecasting
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - db
+      - redis
+    networks:
+      - demand-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  mysql_data:
+
+networks:
+  demand-network:
+    driver: bridge
